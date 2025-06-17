@@ -10,6 +10,49 @@ document.addEventListener('DOMContentLoaded', function() {
     let numRows = 11;
     let numCols = 5;
 
+    /**
+     * Gère l'événement de collage sur la grille de saisie.
+     * @param {ClipboardEvent} event L'événement de collage.
+     */
+    function handlePaste(event) {
+        // Cible uniquement les champs de saisie de la grille
+        if (event.target.tagName !== 'INPUT') return;
+
+        // Empêche le comportement par défaut du navigateur
+        event.preventDefault();
+
+        const clipboardData = event.clipboardData || window.clipboardData;
+        const pastedText = clipboardData.getData('text/plain');
+
+        // Récupère la position de départ à partir des attributs de la cellule ciblée
+        const startRow = parseInt(event.target.dataset.row, 10);
+        const startCol = parseInt(event.target.dataset.col, 10);
+
+        // Scinde les données du presse-papiers en lignes puis en cellules
+        const rows = pastedText.split(/\r?\n/).map(row => row.split('\t'));
+
+        // Itère sur les données collées pour remplir la grille
+        rows.forEach((row, i) => {
+            const currentRow = startRow + i;
+            // S'assure de ne pas dépasser le nombre de lignes existantes
+            if (currentRow < numRows) {
+                row.forEach((cellValue, j) => {
+                    const currentCol = startCol + j;
+                    // S'assure de ne pas dépasser le nombre de colonnes existantes
+                    if (currentCol < numCols) {
+                        const targetInput = document.querySelector(`input[data-row="${currentRow}"][data-col="${currentCol}"]`);
+                        if (targetInput) {
+                            targetInput.value = cellValue;
+                        }
+                    }
+                });
+            }
+        });
+
+        // Met à jour les boutons de sélection d'habitat car les en-têtes ont pu changer
+        updateHabitatButtons();
+    }
+
     function createTable() {
         let tableHtml = '<table class="data-table">';
         for (let i = 0; i < numRows; i++) {
@@ -23,6 +66,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         tableHtml += '</table>';
         dataEditorContainer.innerHTML = tableHtml;
+
+        // Attache l'écouteur d'événement pour le collage
+        // Il est attaché au conteneur pour utiliser la délégation d'événements
+        dataEditorContainer.removeEventListener('paste', handlePaste); // Précaution pour éviter les doublons
+        dataEditorContainer.addEventListener('paste', handlePaste);
+
         updateHabitatButtons();
         
         // Add listener to header inputs to update buttons
@@ -60,7 +109,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     addColBtn.addEventListener('click', () => {
         numCols++;
+        const data = getTableData();
         createTable();
+        // Repopulate table with old data
     });
 
     addRowBtn.addEventListener('click', () => {
@@ -121,11 +172,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('step2').style.display = 'block';
         document.getElementById('step3').style.display = 'block';
         
-        renderTraitSelection(results.communalities, results.species_data);
+        renderTraitSelection(results.communalities, results.species_data, results.pca_coords);
         renderSyntaxons(results.top_syntaxons);
     }
 
-    function renderTraitSelection(communalities, speciesData) {
+    function renderTraitSelection(communalities, speciesData, pcaCoords) {
         const container = document.getElementById('trait-selection-table');
         if (!communalities || communalities.length === 0) {
             container.innerHTML = "<p>Aucune donnée de communalité à afficher.</p>";
@@ -133,10 +184,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        let tableHtml = '<table><tr><th>Variable</th><th>Communalité (%)</th><th>Axe X</th><th>Axe Y</th></tr>';
+        let tableHtml = '<table><thead><tr><th>Variable</th><th>Communalité (%)</th><th>Axe X</th><th>Axe Y</th></tr></thead><tbody>';
         communalities.forEach((item, index) => {
             const x_checked = (index === 0) ? 'checked' : '';
-            const y_checked = (index === 1) ? 'checked' : '';
+            const y_checked = (communalities.length > 1 && index === 1) ? 'checked' : '';
             tableHtml += `
                 <tr>
                     <td>${item.Variable}</td>
@@ -146,17 +197,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 </tr>
             `;
         });
-        tableHtml += '</table>';
+        tableHtml += '</tbody></table>';
         container.innerHTML = tableHtml;
 
         const radios = container.querySelectorAll('input[type="radio"]');
-        radios.forEach(radio => radio.addEventListener('change', () => renderInteractivePlot(communalities, speciesData)));
+        radios.forEach(radio => radio.addEventListener('change', () => renderInteractivePlot(speciesData, pcaCoords)));
         
         // Initial plot render
-        renderInteractivePlot(communalities, speciesData);
+        renderInteractivePlot(speciesData, pcaCoords);
     }
     
-    function renderInteractivePlot(communalities, speciesData) {
+    function renderInteractivePlot(speciesData, pcaCoords) {
+        const usePca = document.querySelector('input[name="x-axis"]')?.value === 'PC1'; // Simple check
         const x_axis = document.querySelector('input[name="x-axis"]:checked')?.value;
         const y_axis = document.querySelector('input[name="y-axis"]:checked')?.value;
 
@@ -164,12 +216,19 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('interactive-plot').innerHTML = "<p>Veuillez sélectionner les axes X et Y.</p>";
             return;
         }
+        
+        // Combine speciesData with pcaCoords for plotting
+        const plotData = speciesData.map((d, i) => ({
+            ...d,
+            ...pcaCoords[i] // Assumes order is the same
+        }));
+
 
         const traces = [];
-        const groups = [...new Set(speciesData.map(item => item.Source_Habitat))];
+        const groups = [...new Set(plotData.map(item => item.Source_Habitat))];
         
-        groups.forEach((group, i) => {
-            const groupData = speciesData.filter(d => d.Source_Habitat === group);
+        groups.forEach((group) => {
+            const groupData = plotData.filter(d => d.Source_Habitat === group);
             traces.push({
                 x: groupData.map(d => d[x_axis]),
                 y: groupData.map(d => d[y_axis]),
@@ -183,25 +242,27 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             // Centroid
-            const x_mean = groupData.reduce((a, b) => a + b[x_axis], 0) / groupData.length;
-            const y_mean = groupData.reduce((a, b) => a + b[y_axis], 0) / groupData.length;
-            traces.push({
-                x: [x_mean],
-                y: [y_mean],
-                mode: 'markers',
-                type: 'scatter',
-                name: `Centroïde ${group}`,
-                marker: { size: 15, symbol: 'cross', color: 'white' },
-                hoverinfo: 'skip'
-            });
+            if (groupData.length > 0) {
+                const x_mean = groupData.reduce((a, b) => a + b[x_axis], 0) / groupData.length;
+                const y_mean = groupData.reduce((a, b) => a + b[y_axis], 0) / groupData.length;
+                traces.push({
+                    x: [x_mean],
+                    y: [y_mean],
+                    mode: 'markers',
+                    type: 'scatter',
+                    name: `Centroïde ${group}`,
+                    marker: { size: 15, symbol: 'cross', color: 'white' },
+                    hoverinfo: 'skip'
+                });
+            }
         });
 
         const layout = {
             title: `${y_axis} vs. ${x_axis}`,
-            xaxis: { title: x_axis },
-            yaxis: { title: y_axis },
+            xaxis: { title: x_axis, zeroline: true, zerolinewidth: 1, zerolinecolor: 'grey' },
+            yaxis: { title: y_axis, zeroline: true, zerolinewidth: 1, zerolinecolor: 'grey' },
             paper_bgcolor: 'var(--secondary-color)',
-            plot_bgcolor: 'var(--secondary-color)',
+            plot_bgcolor: 'var(--bg-color)',
             font: { color: 'var(--text-color)' },
             legend: { orientation: 'h', y: -0.2 }
         };
@@ -221,11 +282,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <h4>${s.name_latin} (${s.score})</h4>
                 <p><b>Présents:</b></p>
                 <ul class="species-list-present">
-                    ${s.common_species.map(sp => `<li>${sp}</li>`).join('')}
+                    ${s.common_species.map(sp => `<li>${sp.charAt(0).toUpperCase() + sp.slice(1)}</li>`).join('')}
                 </ul>
                 <p><b>Absents:</b></p>
                 <ul class="species-list-absent">
-                    ${s.absent_species.map(sp => `<li>${sp}</li>`).join('')}
+                    ${s.absent_species.map(sp => `<li>${sp.charAt(0).toUpperCase() + sp.slice(1)}</li>`).join('')}
                 </ul>
             </div>
         `).join('');
