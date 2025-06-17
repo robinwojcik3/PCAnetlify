@@ -10,10 +10,12 @@ import re
 import pathlib
 
 # --- CONSTANTES --- #
-DATA_DIR = pathlib.Path(__file__).parent.parent.parent
-REF_PATH = DATA_DIR / "data_ref.csv"
-ECOLOGY_PATH = DATA_DIR / "data_ecologie_espece.csv"
-SYNTAXON_PATH = DATA_DIR / "data_villaret.csv"
+# CORRECTION : Le chemin est maintenant relatif au script de la fonction.
+# Netlify place les `included_files` au même niveau que la fonction.
+FUNC_DIR = pathlib.Path(__file__).parent
+REF_PATH = FUNC_DIR / "data_ref.csv"
+ECOLOGY_PATH = FUNC_DIR / "data_ecologie_espece.csv"
+SYNTAXON_PATH = FUNC_DIR / "data_villaret.csv"
 
 # --- HELPERS DE NORMALISATION (issus de app.py) --- #
 def normalize_species_name(species_name):
@@ -123,6 +125,7 @@ def handler(event, context):
             species_in_col = df_releves.iloc[1:, habitat_idx].dropna().astype(str).str.strip().tolist()
             
             for raw_species in species_in_col:
+                if not raw_species: continue
                 binom_species = normalize_species_name(raw_species)
                 match = ref_binom_series[ref_binom_series == binom_species]
                 if not match.empty:
@@ -135,7 +138,7 @@ def handler(event, context):
                     all_species_data.append(trait_data)
 
         if not all_species_data:
-            return {"statusCode": 200, "body": json.dumps({"message": "Aucune espèce correspondante trouvée."})}
+            return {"statusCode": 200, "body": json.dumps({"message": "Aucune espèce correspondante trouvée dans les relevés sélectionnés."})}
 
         sub_df = pd.DataFrame(all_species_data)
         
@@ -184,11 +187,13 @@ def handler(event, context):
         }
 
     except Exception as e:
-        # Log l'erreur pour le débogage côté serveur
-        print(f"ERROR: {e}")
         import traceback
-        traceback.print_exc()
+        error_message = f"Une erreur est survenue dans la fonction serverless: {str(e)}"
+        error_trace = traceback.format_exc()
+        # Log l'erreur pour le débogage côté serveur dans les logs Netlify
+        print(error_message)
+        print(error_trace)
         return {
             "statusCode": 500,
-            "body": json.dumps({"error": str(e)})
+            "body": json.dumps({"error": error_message, "trace": error_trace})
         }
