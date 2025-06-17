@@ -107,22 +107,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const releves_data = getTableData();
 
         try {
-            const response = await fetch('/api/analyze', {
+            // CORRECTION : Utilisation du chemin direct vers la fonction Netlify
+            const response = await fetch('/.netlify/functions/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ releves_data, selected_indices })
             });
 
-            // AMÉLIORATION : Gérer les réponses non-JSON
             const contentType = response.headers.get("content-type");
             if (!response.ok || !contentType || !contentType.includes("application/json")) {
                 const responseText = await response.text();
-                // Tente de parser le texte comme JSON pour un message d'erreur plus précis du backend
                 try {
                     const errData = JSON.parse(responseText);
                     throw new Error(errData.error || `Erreur serveur: ${response.status}`);
                 } catch(e) {
-                    // Si le parsing échoue, la réponse n'était pas du JSON (probablement du HTML)
                     throw new Error(`Le serveur a retourné une réponse inattendue (non-JSON). Status: ${response.status}`);
                 }
             }
