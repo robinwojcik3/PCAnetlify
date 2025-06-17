@@ -1,16 +1,20 @@
+# Fichier de configuration principal pour le build Netlify
 [build]
-  # Spécifie le nouveau dossier où se trouvent les fonctions
-  functions = "functions"
+  # Dossier racine à publier après le build. "." signifie la racine du projet.
   publish = "."
+  # Dossier où Netlify doit chercher les fonctions serverless.
+  functions = "functions"
 
-# La configuration de la fonction est maintenant héritée de la section [build]
-# mais on peut la garder pour la clarté.
+# Configuration spécifique aux fonctions serverless
 [functions]
+  # Spécifie les fichiers à inclure avec les fonctions lors du déploiement.
+  # Essentiel pour que `analyze.py` puisse trouver les fichiers CSV.
   included_files = ["data_*.csv"]
 
-# La redirection n'est plus critique car on utilise l'URL directe,
-# mais c'est une bonne pratique de la laisser pour l'avenir.
+# Règles de redirection
 [[redirects]]
+  # Cette règle redirige toutes les requêtes de /api/* vers la fonction correspondante.
+  # Par exemple, un appel à /api/analyze sera traité par /.netlify/functions/analyze.
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
