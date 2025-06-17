@@ -1,0 +1,180 @@
+:root {
+    --bg-color: #0e1117;
+    --text-color: #fafafa;
+    --primary-color: #ff4b4b;
+    --secondary-color: #1c1e24;
+    --border-color: #31333f;
+    --header-font-size: 1.5rem;
+    --body-font-size: 1rem;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    font-size: var(--body-font-size);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 2rem;
+}
+
+header {
+    background-color: var(--secondary-color);
+    padding: 1rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+h1, h2, h3 {
+    color: var(--text-color);
+}
+
+h1 { font-size: 2rem; }
+h2 { font-size: var(--header-font-size); border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; margin-top: 2rem; }
+h3 { font-size: 1.2rem; margin-top: 1.5rem; }
+
+section {
+    background-color: var(--secondary-color);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-top: 1.5rem;
+    border: 1px solid var(--border-color);
+}
+
+/* Data Editor */
+#data-editor-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table input {
+    width: 95%;
+    padding: 8px;
+    background-color: #2b2e37;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 4px;
+}
+
+.data-table input.header-input {
+    font-weight: bold;
+    background-color: #3e424f;
+}
+
+.editor-controls {
+    margin-top: 1rem;
+    display: flex;
+    gap: 10px;
+}
+
+/* Buttons */
+button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--primary-color);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease-in-out;
+}
+
+button.run-button {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: bold;
+    font-size: 1.1rem;
+    padding: 0.75rem 1.5rem;
+    display: block;
+    margin: 1.5rem auto;
+}
+.run-button:hover {
+    opacity: 0.9;
+}
+
+.button-group button {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.button-group button.selected {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* Analysis Layout */
+.analysis-layout {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+    margin-top: 1rem;
+}
+
+.plot-container { min-height: 600px; }
+
+/* Trait Table */
+.trait-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.trait-table th, .trait-table td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Syntaxon Display */
+.syntaxon-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+.syntaxon-card {
+    background-color: #1a1c22;
+    padding: 1rem;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+}
+.syntaxon-card h4 { margin-top: 0; }
+.syntaxon-card ul {
+    padding-left: 20px;
+    font-size: 0.9em;
+    max-height: 150px;
+    overflow-y: auto;
+}
+.species-list-present li { color: #82e0aa; }
+.species-list-absent li { color: #f5b7b1; }
+
+
+/* Loader and Error */
+.loader {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.error {
+    color: var(--primary-color);
+    background-color: rgba(255, 75, 75, 0.1);
+    border: 1px solid var(--primary-color);
+    padding: 1rem;
+    border-radius: 5px;
+    margin-top: 1rem;
+}
