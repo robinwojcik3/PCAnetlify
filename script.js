@@ -10,35 +10,19 @@ document.addEventListener('DOMContentLoaded', function() {
     let numRows = 11;
     let numCols = 5;
 
-    /**
-     * Gère l'événement de collage sur la grille de saisie.
-     * @param {ClipboardEvent} event L'événement de collage.
-     */
     function handlePaste(event) {
-        // Cible uniquement les champs de saisie de la grille
         if (event.target.tagName !== 'INPUT') return;
-
-        // Empêche le comportement par défaut du navigateur
         event.preventDefault();
-
         const clipboardData = event.clipboardData || window.clipboardData;
         const pastedText = clipboardData.getData('text/plain');
-
-        // Récupère la position de départ à partir des attributs de la cellule ciblée
         const startRow = parseInt(event.target.dataset.row, 10);
         const startCol = parseInt(event.target.dataset.col, 10);
-
-        // Scinde les données du presse-papiers en lignes puis en cellules
         const rows = pastedText.split(/\r?\n/).map(row => row.split('\t'));
-
-        // Itère sur les données collées pour remplir la grille
         rows.forEach((row, i) => {
             const currentRow = startRow + i;
-            // S'assure de ne pas dépasser le nombre de lignes existantes
             if (currentRow < numRows) {
                 row.forEach((cellValue, j) => {
                     const currentCol = startCol + j;
-                    // S'assure de ne pas dépasser le nombre de colonnes existantes
                     if (currentCol < numCols) {
                         const targetInput = document.querySelector(`input[data-row="${currentRow}"][data-col="${currentCol}"]`);
                         if (targetInput) {
@@ -48,8 +32,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
         });
-
-        // Met à jour les boutons de sélection d'habitat car les en-têtes ont pu changer
         updateHabitatButtons();
     }
 
@@ -66,15 +48,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         tableHtml += '</table>';
         dataEditorContainer.innerHTML = tableHtml;
-
-        // Attache l'écouteur d'événement pour le collage
-        // Il est attaché au conteneur pour utiliser la délégation d'événements
-        dataEditorContainer.removeEventListener('paste', handlePaste); // Précaution pour éviter les doublons
+        dataEditorContainer.removeEventListener('paste', handlePaste);
         dataEditorContainer.addEventListener('paste', handlePaste);
-
         updateHabitatButtons();
-        
-        // Add listener to header inputs to update buttons
         dataEditorContainer.querySelectorAll('.header-input').forEach(input => {
             input.addEventListener('input', updateHabitatButtons);
         });
@@ -99,7 +75,6 @@ document.addEventListener('DOMContentLoaded', function() {
         habitatSelectionButtons.innerHTML = headers.map((name, index) =>
             `<button data-index="${index}">${name}</button>`
         ).join('');
-
         habitatSelectionButtons.querySelectorAll('button').forEach(button => {
             button.addEventListener('click', () => {
                 button.classList.toggle('selected');
@@ -109,9 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     addColBtn.addEventListener('click', () => {
         numCols++;
-        const data = getTableData();
         createTable();
-        // Repopulate table with old data
     });
 
     addRowBtn.addEventListener('click', () => {
@@ -130,7 +103,6 @@ document.addEventListener('DOMContentLoaded', function() {
         errorMessage.style.display = 'none';
         ['step2', 'step3'].forEach(id => document.getElementById(id).style.display = 'none');
 
-
         const selected_indices = Array.from(selectedButtons).map(b => parseInt(b.dataset.index));
         const releves_data = getTableData();
 
@@ -141,16 +113,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({ releves_data, selected_indices })
             });
 
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error || `Erreur serveur: ${response.status}`);
+            // AMÉLIORATION : Gérer les réponses non-JSON
+            const contentType = response.headers.get("content-type");
+            if (!response.ok || !contentType || !contentType.includes("application/json")) {
+                const responseText = await response.text();
+                // Tente de parser le texte comme JSON pour un message d'erreur plus précis du backend
+                try {
+                    const errData = JSON.parse(responseText);
+                    throw new Error(errData.error || `Erreur serveur: ${response.status}`);
+                } catch(e) {
+                    // Si le parsing échoue, la réponse n'était pas du JSON (probablement du HTML)
+                    throw new Error(`Le serveur a retourné une réponse inattendue (non-JSON). Status: ${response.status}`);
+                }
             }
 
             const results = await response.json();
             
+            if (results.error) {
+                 showError(results.error);
+                 return;
+            }
             if (results.message || !results.species_data || results.species_data.length === 0) {
                  showError(results.message || "Aucune donnée analysable n'a été trouvée.");
-                 loader.style.display = 'none';
                  return;
             }
 
@@ -203,12 +187,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const radios = container.querySelectorAll('input[type="radio"]');
         radios.forEach(radio => radio.addEventListener('change', () => renderInteractivePlot(speciesData, pcaCoords)));
         
-        // Initial plot render
         renderInteractivePlot(speciesData, pcaCoords);
     }
     
     function renderInteractivePlot(speciesData, pcaCoords) {
-        const usePca = document.querySelector('input[name="x-axis"]')?.value === 'PC1'; // Simple check
         const x_axis = document.querySelector('input[name="x-axis"]:checked')?.value;
         const y_axis = document.querySelector('input[name="y-axis"]:checked')?.value;
 
@@ -217,12 +199,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Combine speciesData with pcaCoords for plotting
         const plotData = speciesData.map((d, i) => ({
             ...d,
-            ...pcaCoords[i] // Assumes order is the same
+            ...(pcaCoords && pcaCoords[i] ? pcaCoords[i] : {})
         }));
-
 
         const traces = [];
         const groups = [...new Set(plotData.map(item => item.Source_Habitat))];
@@ -241,10 +221,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 marker: { size: 8 }
             });
 
-            // Centroid
             if (groupData.length > 0) {
-                const x_mean = groupData.reduce((a, b) => a + b[x_axis], 0) / groupData.length;
-                const y_mean = groupData.reduce((a, b) => a + b[y_axis], 0) / groupData.length;
+                const x_mean = groupData.reduce((a, b) => a + (b[x_axis] || 0), 0) / groupData.length;
+                const y_mean = groupData.reduce((a, b) => a + (b[y_axis] || 0), 0) / groupData.length;
                 traces.push({
                     x: [x_mean],
                     y: [y_mean],
@@ -276,7 +255,6 @@ document.addEventListener('DOMContentLoaded', function() {
             container.innerHTML = "<p>Aucun syntaxon correspondant trouvé.</p>";
             return;
         }
-
         container.innerHTML = syntaxons.map(s => `
             <div class="syntaxon-card">
                 <h4>${s.name_latin} (${s.score})</h4>
@@ -291,7 +269,6 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `).join('');
     }
-
-    // Initial state
+    
     createTable();
 });
