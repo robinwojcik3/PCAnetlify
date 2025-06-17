@@ -107,8 +107,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const releves_data = getTableData();
 
         try {
-            // CORRECTION : Utilisation du chemin direct vers la fonction Netlify
-            const response = await fetch('/.netlify/functions/analyze', {
+            // CORRECTION : Utilisation du chemin /api/ défini dans netlify.toml
+            const response = await fetch('/api/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ releves_data, selected_indices })
