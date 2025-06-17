@@ -1,0 +1,11 @@
+[build]
+  functions = "netlify/functions"
+  publish = "."
+
+[functions]
+  included_files = ["data_*.csv"]
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
