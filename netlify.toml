@@ -1,11 +1,11 @@
 [build]
-  functions = "netlify/functions"
+  # Il est parfois utile d'avoir une commande de build, même vide.
+  command = "echo 'No build command needed'"
   publish = "."
+  functions = "netlify/functions"
 
-[functions]
+# Configuration plus explicite pour la fonction 'analyze'.
+# Netlify va chercher un fichier analyze.py dans le dossier 'functions'.
+[functions.analyze]
+  # Cette directive lie les fichiers de données spécifiquement à cette fonction.
   included_files = ["data_*.csv"]
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
