@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse de Relevés Floristiques</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+
+    <header>
+        <h1>Analyse Interactive de Relevés Floristiques et Syntaxons</h1>
+    </header>
+
+    <main class="container">
+        <section id="step1">
+            <h2>Étape 1: Importation et Sélection des Relevés</h2>
+            <p>Saisissez vos données de relevés. La première ligne correspond aux noms d'habitats, les lignes suivantes aux espèces.</p>
+            <div id="data-editor-container"></div>
+            <div class="editor-controls">
+                <button id="add-col-btn">Ajouter Relevé</button>
+                <button id="add-row-btn">Ajouter Ligne Espèce</button>
+            </div>
+            <h3>Sélectionnez les relevés à analyser :</h3>
+            <div id="habitat-selection-buttons" class="button-group"></div>
+            <button id="run-analysis-btn" class="run-button">Lancer l'Analyse</button>
+            <div id="loader" class="loader" style="display: none;"></div>
+            <div id="error-message" class="error"></div>
+        </section>
+
+        <section id="step2" style="display: none;">
+            <h2>Étape 2: Exploration Interactive des Traits</h2>
+            <div class="analysis-layout">
+                <div id="trait-selection-table" class="trait-table"></div>
+                <div id="interactive-plot" class="plot-container"></div>
+            </div>
+        </section>
+
+        <section id="step3" style="display: none;">
+            <h2>Étape 3: Identification des Syntaxons Pertinents</h2>
+            <p>Les 5 syntaxons les plus probables basés sur les espèces de vos relevés.</p>
+            <div id="syntaxon-display" class="syntaxon-container"></div>
+        </section>
+    </main>
+    
+    <script src="script.js"></script>
+
+</body>
+</html>
